@@ -86,10 +86,14 @@ public class LobbyManager : MonoBehaviour
     void Update()
     {
         HandleLobbiesListUpdate();
-        HandleLobbyHeartbeat();
+        NewMethod();
         HandleRoomUpdate();
     }
 
+    private void NewMethod()
+    {
+        HandleLobbyHeartbeat();
+    }
 
     private async void CreateLobby()
     {

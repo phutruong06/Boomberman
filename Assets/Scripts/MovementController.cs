@@ -1,9 +1,10 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class MovementController : MonoBehaviour
+public class MovementController : NetworkBehaviour
 {
     public new Rigidbody2D rigidbody { get; private set; }
-    private Vector2 direction = Vector2.down;
+    [SerializeField] private NetworkVariable<Vector2> direction = new NetworkVariable<Vector2>(Vector2.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public float speed = 5f;
 
     public KeyCode inputUp = KeyCode.W;
@@ -24,53 +25,71 @@ public class MovementController : MonoBehaviour
         rigidbody = GetComponent<Rigidbody2D>();
         activeSpriteRenderer = spriteRendererDown;
     }
-
+        
     private void Update()
     {
+        SetSpriteC();
+
+        //if (!IsOwner)
+        //    return;
+
         if (Input.GetKey(inputUp))
         {
-            SetDirection(Vector2.up, spriteRendererUp);
+            SetDirectionServerRpc(Vector2.up);
         }
         else if (Input.GetKey(inputDown))
         {
-            SetDirection(Vector2.down, spriteRendererDown);
+            SetDirectionServerRpc(Vector2.down);
         }
         else if (Input.GetKey(inputLeft))
         {
-            SetDirection(Vector2.left, spriteRendererLeft);
+            SetDirectionServerRpc(Vector2.left);
         }
         else if (Input.GetKey(inputRight))
         {
-            SetDirection(Vector2.right, spriteRendererRight);
+            SetDirectionServerRpc(Vector2.right);
         }
         else
         {
-            SetDirection(Vector2.zero, activeSpriteRenderer);
+            SetDirectionServerRpc(Vector2.zero);
         }
+  
 
     }
 
     private void FixedUpdate()
     {
-       
+        if (!IsOwnedByServer)
+            return;
+
+        MoveRigidbodyServerRpc();
+    }
+
+    [ServerRpc]
+    private void MoveRigidbodyServerRpc()
+    {
         Vector2 position = rigidbody.position;
-        Vector2 translation = direction * speed * Time.fixedDeltaTime;
+        Vector2 translation = direction.Value * speed * Time.fixedDeltaTime;
 
         rigidbody.MovePosition(position + translation);
     }
 
-    private void SetDirection(Vector2 newDirection, AnimatedSpriteRenderer spriteRenderer)
+    [ServerRpc]
+    private void SetDirectionServerRpc(Vector2 newDirection)
     {
-        direction = newDirection;
+        direction.Value = newDirection;
 
-        spriteRendererUp.enabled = spriteRenderer == spriteRendererUp;
-        spriteRendererDown.enabled = spriteRenderer == spriteRendererDown;
-        spriteRendererLeft.enabled = spriteRenderer == spriteRendererLeft;
-        spriteRendererRight.enabled = spriteRenderer == spriteRendererRight;
+    }
 
-        activeSpriteRenderer = spriteRenderer;
-        activeSpriteRenderer.idle = direction == Vector2.zero;
+    private void SetSpriteC()
+    {
 
+        spriteRendererUp.enabled = activeSpriteRenderer == spriteRendererUp;
+        spriteRendererDown.enabled = activeSpriteRenderer == spriteRendererDown;
+        spriteRendererLeft.enabled = activeSpriteRenderer == spriteRendererLeft;
+        spriteRendererRight.enabled = activeSpriteRenderer == spriteRendererRight;
+        Debug.Log(direction.Value);
+        activeSpriteRenderer.idle = direction.Value == Vector2.zero;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
