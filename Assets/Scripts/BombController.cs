@@ -1,8 +1,9 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using Unity.Netcode;
 
-public class BombController : MonoBehaviour
+public class BombController : NetworkBehaviour
 {
     [Header("Bomb")]
     public GameObject bombPrefab;
